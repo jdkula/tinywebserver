@@ -5,11 +5,18 @@ import io.ktor.application.install
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.request.get
+import io.ktor.features.AutoHeadResponse
 import io.ktor.features.CORS
+import io.ktor.features.StatusPages
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.default
 import io.ktor.http.content.files
 import io.ktor.http.content.static
+import io.ktor.request.path
+import io.ktor.response.respondFile
 import io.ktor.response.respondRedirect
+import io.ktor.response.respondText
 import io.ktor.routing.Routing
 import io.ktor.routing.get
 import io.ktor.server.engine.ShutDownUrl
@@ -19,7 +26,10 @@ import kotlinx.coroutines.runBlocking
 import pw.jonak.Subprocess
 import java.io.File
 import java.net.BindException
+import java.nio.file.NoSuchFileException
 import java.util.*
+
+const val LOCK_FILE_NAME = ".server.lock"
 
 /** Opens this server in the operating system's default browser. */
 fun openBrowser(port: Int) {
@@ -47,7 +57,7 @@ fun serverRunning(port: Int, lockText: String): Boolean {
     val client = HttpClient(Apache)
     return try {
         val lockTest = runBlocking {
-            client.get<String>("http://localhost:$port/lock.pid")
+            client.get<String>("http://localhost:$port/$LOCK_FILE_NAME")
         }
         lockTest == lockText
     } catch (e: Exception) {
@@ -63,7 +73,7 @@ fun hideFile(f: File) {
 }
 
 fun main(args: Array<String>) {
-    val lock = File(".server.lock")
+    val lock = File(LOCK_FILE_NAME)
     if (lock.exists()) {
         val lockText = lock.readText()
         val (serverPort) = lockText.split("\n").map { it.toInt() }
@@ -82,38 +92,64 @@ fun main(args: Array<String>) {
 
     while (port < (portStart + 10)) {
         try {
-            embeddedServer(Netty, port, "127.0.0.1") {
-                lock.writeText("$port")
-                hideFile(lock)
-                openBrowser(port)
-
-                install(CORS) {
-                    anyHost()
-                }
-
-                install(ShutDownUrl.ApplicationCallFeature) {
-                    shutDownUrl = "/quit"
-                    exitCodeSupplier = {
-                        lock.delete()
-                        0
-                    }
-                }
-
-                install(Routing) {
-                    get("/exit") {
-                        call.respondRedirect("/quit", permanent = true)
-                    }
-                    get("/off") {
-                        call.respondRedirect("/quit", permanent = true)
-                    }
-                    static {
-                        files(".")
-                        default("index.html")
-                    }
-                }
-            }.start(true)
+            startServer(port, lock)
         } catch (e: BindException) {
             port++
         }
     }
+}
+
+fun startServer(port: Int, lock: File) {
+    embeddedServer(Netty, port, "127.0.0.1") {
+        lock.writeText("$port")
+        hideFile(lock)
+        openBrowser(port)
+
+        install(CORS) {
+            anyHost()
+        }
+        install(AutoHeadResponse) {
+
+        }
+        install(StatusPages) {
+            status(HttpStatusCode.Gone) {
+                call.respondText("Server shutting down.")
+            }
+
+            status(HttpStatusCode.NotFound) {
+                val path = call.request.path()
+                println(path)
+                if (path.endsWith("/")) {
+                    val filePath = "./$path".replace("//", "/").replace("/", File.separator)
+                    try {
+                        call.respondFile(File(filePath), "index.html")
+                    } catch (e: NoSuchFileException) {
+                        // Do nothing -- cascade to below.
+                    }
+                }
+                call.respondText("File not found.", ContentType.Text.Plain, HttpStatusCode.NotFound)
+            }
+        }
+
+        install(ShutDownUrl.ApplicationCallFeature) {
+            shutDownUrl = "/quit"
+            exitCodeSupplier = {
+                lock.delete()
+                0
+            }
+        }
+
+        install(Routing) {
+            get("/exit") {
+                call.respondRedirect("/quit", permanent = true)
+            }
+            get("/off") {
+                call.respondRedirect("/quit", permanent = true)
+            }
+            static {
+                files(".")
+                default("index.html")
+            }
+        }
+    }.start(true)
 }

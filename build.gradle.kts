@@ -29,7 +29,7 @@ dependencies {
     compile("io.ktor:ktor-client-apache:$ktor_version")
     compile("io.ktor:ktor-server-netty:$ktor_version")
     compile("ch.qos.logback:logback-classic:0.9.24")
-    compile("pw.jonak:subprocess:1.0-FINAL")
+    compile("pw.jonak:subprocess:1.5-FINAL")
 
     testCompile("junit", "junit", "4.12")
 }
