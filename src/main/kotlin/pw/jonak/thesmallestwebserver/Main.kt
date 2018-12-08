@@ -26,6 +26,9 @@ import java.util.*
 
 const val LOCK_FILE_NAME = ".server.lock"
 const val CONFIG_FILE_NAME = ".projectconfig.json"
+const val DEFAULT_MIN_PORT = 2000
+const val DEFAULT_MAX_PORT = 65432
+const val DEFAULT_PORT_RANGE = 10
 
 fun main(args: Array<String>) {
     val lock = File(LOCK_FILE_NAME)
@@ -44,13 +47,7 @@ fun main(args: Array<String>) {
 
     val cfg = Configuration.from(CONFIG_FILE_NAME)
 
-    val portRange =
-        if(cfg?.port != null) {
-            cfg.port..cfg.port
-        } else {
-            val randomPort = (Random().nextInt(45454) + 2000)
-            randomPort..(randomPort + 10)
-        }
+    val portRange = cfg?.portRange ?: getRandomPortRange(DEFAULT_MIN_PORT, DEFAULT_MAX_PORT, DEFAULT_PORT_RANGE)
 
     for(port in portRange) {
         try {

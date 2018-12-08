@@ -6,6 +6,7 @@ import io.ktor.client.request.get
 import kotlinx.coroutines.runBlocking
 import pw.jonak.Subprocess
 import java.io.File
+import java.util.*
 
 /** Opens this server in the operating system's default browser. */
 fun openBrowser(port: Int) {
@@ -46,4 +47,9 @@ fun hideFile(f: File) {
     if (System.getProperty("os.name").contains("win", ignoreCase = true)) {
         Subprocess("attrib", "+H", f.absolutePath).waitForCompletion()
     }
+}
+
+fun getRandomPortRange(minPort: Int, maxPort: Int, rangeSize: Int): IntRange {
+    val randomPort = (Random().nextInt(maxPort) + minPort)
+    return randomPort..(randomPort + rangeSize)
 }

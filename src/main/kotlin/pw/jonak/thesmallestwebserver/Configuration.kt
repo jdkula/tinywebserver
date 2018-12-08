@@ -4,7 +4,13 @@ import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
 import java.io.File
 
-data class Configuration(val defaultLocation: String? = null, val port: Int? = null) {
+class Configuration(val defaultLocation: String? = null, minPort: Int? = null, maxPort: Int? = null) {
+
+    val portRange =
+        if(minPort != null && maxPort != null)
+            minPort..maxPort
+        else null
+
     companion object {
         fun from(filename: String): Configuration? {
             val f = File(filename)
