@@ -1,8 +1,9 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.net.URI
 
 plugins {
     java
-    kotlin("jvm") version "1.3.10"
+    kotlin("jvm") version "1.3.11"
     application
     id("com.github.johnrengelman.shadow") version "4.0.3"
 }
@@ -20,16 +21,17 @@ repositories {
     mavenCentral()
     jcenter()
     maven {
-        setUrl("https://dl.bintray.com/jdkula/subprocess")
+        url = URI("https://dl.bintray.com/jdkula/subprocess")
     }
 }
 
 dependencies {
-    compile(kotlin("stdlib-jdk8"))
-    compile("io.ktor:ktor-client-apache:$ktor_version")
-    compile("io.ktor:ktor-server-netty:$ktor_version")
-    compile("ch.qos.logback:logback-classic:0.9.24")
-    compile("pw.jonak:subprocess:1.5-FINAL")
+    implementation(kotlin("stdlib-jdk8"))
+    implementation("io.ktor:ktor-client-apache:$ktor_version")
+    implementation("io.ktor:ktor-server-netty:$ktor_version")
+    implementation("ch.qos.logback:logback-classic:0.9.24")
+    implementation("pw.jonak:subprocess:1.5-FINAL")
+    implementation("com.beust:klaxon:3.0.1")
 
     testCompile("junit", "junit", "4.12")
 }
